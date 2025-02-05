@@ -163,7 +163,7 @@ private:
   /// @brief Send a UDP packet
   /// @param send_vector vector containing the data to send
   /// @return Resulting status
-  Status send_udp_packet(const std::vector<uint8_t> & send_vector);
+  Status send_udp_packet(std::vector<uint8_t> & send_vector);
 
   std::unique_ptr<::drivers::common::IoContext> sensor_io_context_ptr_;
   std::unique_ptr<::drivers::udp_driver::UdpDriver> sensor_udp_driver_ptr_;

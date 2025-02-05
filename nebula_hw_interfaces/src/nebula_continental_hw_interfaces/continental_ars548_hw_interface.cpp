@@ -105,13 +105,15 @@ Status ContinentalARS548HwInterface::sensor_interface_stop()
   return Status::ERROR_1;
 }
 
-Status ContinentalARS548HwInterface::send_udp_packet(const std::vector<uint8_t> & send_vector)
+Status ContinentalARS548HwInterface::send_udp_packet(std::vector<uint8_t> & send_vector)
 {
-  if (!sensor_udp_driver_ptr_->sender()->isOpen()) {
+  std::shared_ptr<::drivers::udp_driver::UdpSocket> sender = sensor_udp_driver_ptr_->sender();
+
+  if (sender == nullptr || !sender->isOpen()) {
     return Status::ERROR_1;
   }
 
-  sensor_udp_driver_ptr_->sender()->asyncSend(send_vector);
+  sender->asyncSend(send_vector);
 
   return Status::OK;
 }

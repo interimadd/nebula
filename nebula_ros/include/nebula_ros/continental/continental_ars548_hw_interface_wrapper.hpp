@@ -103,6 +103,8 @@ private:
       request,
     const std::shared_ptr<continental_srvs::srv::ContinentalArs548SetRadarParameters::Response>
       response);
+  
+  void update_radar_parameters_using_sensor_topics();
 
   rclcpp::Node * const parent_node_;
   std::shared_ptr<drivers::continental_ars548::ContinentalARS548HwInterface> hw_interface_{};
@@ -115,6 +117,7 @@ private:
   rclcpp::Subscription<geometry_msgs::msg::AccelWithCovarianceStamped>::SharedPtr
     acceleration_sub_{};
   rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr steering_angle_sub_{};
+  rclcpp::TimerBase::SharedPtr polling_timer_;
 
   bool standstill_{true};
 

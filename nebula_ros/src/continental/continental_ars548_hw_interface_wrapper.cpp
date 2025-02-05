@@ -52,24 +52,33 @@ void ContinentalARS548HwInterfaceWrapper::sensor_interface_start()
   }
 
   if (Status::OK == status_) {
+    rclcpp::QoS qos(rclcpp::KeepLast(1));
+    rclcpp::CallbackGroup::SharedPtr cb_group_noexec = parent_node_->create_callback_group(
+      rclcpp::CallbackGroupType::MutuallyExclusive, false);
+    auto subscription_options = rclcpp::SubscriptionOptions();
+    subscription_options.callback_group = cb_group_noexec;
+
     odometry_sub_ =
       parent_node_->create_subscription<geometry_msgs::msg::TwistWithCovarianceStamped>(
-        "odometry_input", rclcpp::QoS{1},
-        std::bind(
-          &ContinentalARS548HwInterfaceWrapper::odometry_callback, this, std::placeholders::_1));
+        "odometry_input", qos,
+        [](const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr){},
+        subscription_options);
 
     acceleration_sub_ =
       parent_node_->create_subscription<geometry_msgs::msg::AccelWithCovarianceStamped>(
-        "acceleration_input", rclcpp::QoS{1},
-        std::bind(
-          &ContinentalARS548HwInterfaceWrapper::acceleration_callback, this,
-          std::placeholders::_1));
+        "acceleration_input", qos,
+        [](const geometry_msgs::msg::AccelWithCovarianceStamped::SharedPtr){},
+        subscription_options);
 
-    steering_angle_sub_ = parent_node_->create_subscription<std_msgs::msg::Float32>(
-      "steering_angle_input", rclcpp::SensorDataQoS(),
-      std::bind(
-        &ContinentalARS548HwInterfaceWrapper::steering_angle_callback, this,
-        std::placeholders::_1));
+    steering_angle_sub_ =
+      parent_node_->create_subscription<std_msgs::msg::Float32>(
+        "steering_angle_input", qos,
+        [](const std_msgs::msg::Float32::SharedPtr){},
+        subscription_options);
+
+    polling_timer_ = parent_node_->create_wall_timer(
+      std::chrono::milliseconds(40),
+      std::bind(&ContinentalARS548HwInterfaceWrapper::update_radar_parameters_using_sensor_topics, this));
 
     set_network_configuration_service_server_ =
       parent_node_->create_service<continental_srvs::srv::ContinentalArs548SetNetworkConfiguration>(
@@ -98,6 +107,29 @@ void ContinentalARS548HwInterfaceWrapper::sensor_interface_start()
         std::bind(
           &ContinentalARS548HwInterfaceWrapper::set_radar_parameters_request_callback, this,
           std::placeholders::_1, std::placeholders::_2));
+  }
+}
+
+void ContinentalARS548HwInterfaceWrapper::update_radar_parameters_using_sensor_topics()
+{
+  rclcpp::MessageInfo msg_info;
+
+  geometry_msgs::msg::TwistWithCovarianceStamped odom;
+  if(odometry_sub_->take(odom, msg_info))
+  {
+    odometry_callback(std::make_shared<geometry_msgs::msg::TwistWithCovarianceStamped>(odom));
+  }
+
+  geometry_msgs::msg::AccelWithCovarianceStamped accel;
+  if(acceleration_sub_->take(accel, msg_info))
+  {
+    acceleration_callback(std::make_shared<geometry_msgs::msg::AccelWithCovarianceStamped>(accel));
+  }
+
+  std_msgs::msg::Float32 steering_angle;
+  if(steering_angle_sub_->take(steering_angle, msg_info))
+  {
+    steering_angle_callback(std::make_shared<std_msgs::msg::Float32>(steering_angle));
   }
 }
 

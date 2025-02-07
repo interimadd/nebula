@@ -76,8 +76,11 @@ void ContinentalARS548HwInterfaceWrapper::sensor_interface_start()
         [](const std_msgs::msg::Float32::SharedPtr){},
         subscription_options);
 
+    const long DYNAMIC_PARAMETERS_UPDATE_RATE_PER_SEC = 20;  // According to the ARS548 specification,
+                                                             // Dynamic parameters should be updated between 10-50 Hz.
+                                                             // 20 Hz is recommended.
     polling_timer_ = parent_node_->create_wall_timer(
-      std::chrono::milliseconds(40),
+      std::chrono::milliseconds(1000 / DYNAMIC_PARAMETERS_UPDATE_RATE_PER_SEC),
       std::bind(&ContinentalARS548HwInterfaceWrapper::update_radar_parameters_using_sensor_topics, this));
 
     set_network_configuration_service_server_ =
